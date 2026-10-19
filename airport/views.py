@@ -24,7 +24,9 @@ from airport.serializers import (
     AirplaneListSerializer,
     AirplaneDetailSerializer,
     CrewListSerializer,
-    TicketListSerializer, FlightListSerializer, FlightDetailSerializer,
+    TicketListSerializer,
+    FlightListSerializer,
+    FlightDetailSerializer,
 )
 
 
@@ -53,6 +55,20 @@ class RouteViewSet(
             return RouteDetailSerializer
 
         return RouteSerializer
+
+    def get_queryset(self):
+        source = self.request.query_params.get("source")
+        destination = self.request.query_params.get("destination")
+
+        queryset = self.queryset
+
+        if source:
+            queryset = queryset.filter(source__icontains=source)
+
+        if destination:
+            queryset = queryset.filter(destination__icontains=destination)
+
+        return queryset.distinct()
 
 
 class AirplaneTypeViewSet(
