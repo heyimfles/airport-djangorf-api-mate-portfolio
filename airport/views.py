@@ -1,4 +1,3 @@
-from django.shortcuts import render
 from rest_framework import viewsets, mixins
 
 from airport.models import (
@@ -20,6 +19,12 @@ from airport.serializers import (
     FlightSerializer,
     CrewSerializer,
     TicketSerializer,
+    RouteListSerializer,
+    RouteDetailSerializer,
+    AirplaneListSerializer,
+    AirplaneDetailSerializer,
+    CrewListSerializer,
+    TicketListSerializer, FlightListSerializer, FlightDetailSerializer,
 )
 
 
@@ -35,10 +40,19 @@ class AirportViewSet(
 class RouteViewSet(
     mixins.CreateModelMixin,
     mixins.ListModelMixin,
-    viewsets.GenericViewSet
+    viewsets.GenericViewSet,
+    mixins.RetrieveModelMixin,
 ):
     queryset = Route.objects.all()
-    serializer_class = RouteSerializer
+
+    def get_serializer_class(self):
+        if self.action == "list":
+            return RouteListSerializer
+
+        if self.action == "retrieve":
+            return RouteDetailSerializer
+
+        return RouteSerializer
 
 
 class AirplaneTypeViewSet(
@@ -53,10 +67,19 @@ class AirplaneTypeViewSet(
 class AirplaneViewSet(
     mixins.CreateModelMixin,
     mixins.ListModelMixin,
-    viewsets.GenericViewSet
+    viewsets.GenericViewSet,
+    mixins.RetrieveModelMixin,
 ):
     queryset = Airplane.objects.all()
-    serializer_class = AirplaneSerializer
+
+    def get_serializer_class(self):
+        if self.action == "list":
+            return AirplaneListSerializer
+
+        if self.action == "retrieve":
+            return AirplaneDetailSerializer
+
+        return AirplaneSerializer
 
 
 class OrderViewSet(
@@ -71,10 +94,19 @@ class OrderViewSet(
 class FlightViewSet(
     mixins.CreateModelMixin,
     mixins.ListModelMixin,
-    viewsets.GenericViewSet
+    viewsets.GenericViewSet,
+    mixins.RetrieveModelMixin,
 ):
     queryset = Flight.objects.all()
-    serializer_class = FlightSerializer
+
+    def get_serializer_class(self):
+        if self.action == "list":
+            return FlightListSerializer
+
+        if self.action == "retrieve":
+            return FlightDetailSerializer
+
+        return FlightSerializer
 
 
 class CrewViewSet(
@@ -83,7 +115,12 @@ class CrewViewSet(
     viewsets.GenericViewSet
 ):
     queryset = Crew.objects.all()
-    serializer_class = CrewSerializer
+
+    def get_serializer_class(self):
+        if self.action == "list":
+            return CrewListSerializer
+
+        return CrewSerializer
 
 
 class TicketViewSet(
@@ -93,4 +130,9 @@ class TicketViewSet(
     viewsets.GenericViewSet
 ):
     queryset = Ticket.objects.all()
-    serializer_class = TicketSerializer
+
+    def get_serializer_class(self):
+        if self.action == "list":
+            return TicketListSerializer
+
+        return TicketSerializer
