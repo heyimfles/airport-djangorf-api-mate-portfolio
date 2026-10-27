@@ -188,6 +188,10 @@ class Ticket(models.Model):
         related_name="tickets",
     )
 
+    @property
+    def row_seat_together(self):
+        return f"{self.row}{self.seat}"
+
     @staticmethod
     def validate_ticket(
             row,

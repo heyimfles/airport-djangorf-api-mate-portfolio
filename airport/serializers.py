@@ -118,6 +118,37 @@ class AirplaneListSerializer(AirplaneSerializer):
         )
 
 
+class TicketSerializer(serializers.ModelSerializer):
+    order = serializers.PrimaryKeyRelatedField(
+        read_only=True,
+    )
+
+    class Meta:
+        model = Ticket
+        fields = (
+            "id",
+            "row_seat_together",
+            "flight",
+            "order",
+        )
+        validators = [
+            UniqueTogetherValidator(
+                queryset=Ticket.objects.all(),
+                fields=["row", "seat", "flight"]
+            )
+        ]
+
+    def validate(self, attrs):
+        data = super(TicketSerializer, self).validate(attrs)
+        Ticket.validate_ticket(
+            attrs["row"],
+            attrs["seat"],
+            attrs["flight"].airplane,
+            serializers.ValidationError
+        )
+        return data
+
+
 class FlightSerializer(serializers.ModelSerializer):
     class Meta:
         model = Flight
@@ -162,6 +193,12 @@ class FlightDetailSerializer(FlightSerializer):
     airplane = AirplaneListSerializer(
         read_only=True,
     )
+    taken_seats = serializers.SlugRelatedField(
+        many=True,
+        read_only=True,
+        slug_field="row_seat_together",
+        source="tickets",
+    )
 
     class Meta:
         model = Flight
@@ -169,41 +206,10 @@ class FlightDetailSerializer(FlightSerializer):
             "id",
             "route",
             "airplane",
+            "taken_seats",
             "departure_time",
             "arrival_time",
         )
-
-
-class TicketSerializer(serializers.ModelSerializer):
-    order = serializers.PrimaryKeyRelatedField(
-        read_only=True,
-    )
-
-    class Meta:
-        model = Ticket
-        fields = (
-            "id",
-            "row",
-            "seat",
-            "flight",
-            "order",
-        )
-        validators = [
-            UniqueTogetherValidator(
-                queryset=Ticket.objects.all(),
-                fields=["row", "seat", "flight"]
-            )
-        ]
-
-    def validate(self, attrs):
-        data = super(TicketSerializer, self).validate(attrs)
-        Ticket.validate_ticket(
-            attrs["row"],
-            attrs["seat"],
-            attrs["flight"].airplane,
-            serializers.ValidationError
-        )
-        return data
 
 
 class OrderSerializer(serializers.ModelSerializer):
