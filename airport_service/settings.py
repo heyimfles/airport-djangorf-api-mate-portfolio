@@ -42,6 +42,7 @@ INSTALLED_APPS = [
     "user",
     "drf_spectacular",
     "debug_toolbar",
+    "django_filters",
 ]
 
 REST_FRAMEWORK = {

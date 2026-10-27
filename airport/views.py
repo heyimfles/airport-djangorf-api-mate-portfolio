@@ -1,5 +1,7 @@
+from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import viewsets, mixins
 from django.db.models import Prefetch
+import django_filters
 
 from airport.models import (
     Airport,
@@ -44,6 +46,10 @@ class RouteViewSet(
 ):
     queryset = Route.objects.all()
 
+    @staticmethod
+    def _params_to_ints(qs):
+        return [int(str_id) for str_id in qs.split(",")]
+
     def get_serializer_class(self):
         if self.action == "list":
             return RouteListSerializer
@@ -56,22 +62,27 @@ class RouteViewSet(
     def get_queryset(self):
         queryset = self.queryset
 
+        source = self.request.query_params.get(
+            "source_city",
+            None
+        )
+        destination = self.request.query_params.get(
+            "destination_city",
+            None
+        )
+
+        if source:
+            source = self._params_to_ints(source)
+            queryset = queryset.filter(source__id__in=source)
+
+        if destination:
+            destination = self._params_to_ints(destination)
+            queryset = queryset.filter(destination__id__in=destination)
+
         if self.action == "list":
             return queryset.select_related()
 
-        return queryset
-        # source = self.request.query_params.get("source")
-        # destination = self.request.query_params.get("destination")
-        #
-        # queryset = self.queryset
-        #
-        # if source:
-        #     queryset = queryset.filter(source__icontains=source)
-        #
-        # if destination:
-        #     queryset = queryset.filter(destination__icontains=destination)
-        #
-        # return queryset.distinct()
+        return queryset.distinct()
 
 
 class AirplaneTypeViewSet(
@@ -98,10 +109,16 @@ class AirplaneViewSet(
 
     def get_queryset(self):
         queryset = self.queryset
+
+        airplane_id = self.request.query_params.get("id", None)
+
+        if airplane_id:
+            queryset = queryset.filter(id=airplane_id)
+
         if self.action == "list":
             return queryset.select_related()
 
-        return queryset
+        return queryset.distinct()
 
 
 class OrderViewSet(
@@ -126,6 +143,24 @@ class OrderViewSet(
         serializer.save(user=self.request.user)
 
 
+class FlightFilter(django_filters.FilterSet):
+    route_source = django_filters.CharFilter(
+        lookup_expr="icontains"
+    )
+    route_destination = django_filters.CharFilter(
+        lookup_expr="icontains"
+    )
+    departure_time = django_filters.DateFromToRangeFilter()
+
+    class Meta:
+        model = Flight
+        fields = [
+            "route_source",
+            "route_destination",
+            "departure_time",
+        ]
+
+
 class FlightViewSet(
     mixins.CreateModelMixin,
     mixins.ListModelMixin,
@@ -133,6 +168,8 @@ class FlightViewSet(
     mixins.RetrieveModelMixin,
 ):
     queryset = Flight.objects.all()
+    filter_backends = [DjangoFilterBackend]
+    filterset_class = FlightFilter
 
     def get_serializer_class(self):
         if self.action == "list":

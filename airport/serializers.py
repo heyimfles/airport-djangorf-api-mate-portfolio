@@ -1,6 +1,7 @@
 from django.db import transaction
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
+from rest_framework.validators import UniqueTogetherValidator
 
 from airport.models import (
     Airport,
@@ -187,6 +188,12 @@ class TicketSerializer(serializers.ModelSerializer):
             "flight",
             "order",
         )
+        validators = [
+            UniqueTogetherValidator(
+                queryset=Ticket.objects.all(),
+                fields=["row", "seat", "flight"]
+            )
+        ]
 
     def validate(self, attrs):
         data = super(TicketSerializer, self).validate(attrs)
