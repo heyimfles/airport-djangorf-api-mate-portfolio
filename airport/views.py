@@ -21,7 +21,6 @@ from airport.serializers import (
     RouteListSerializer,
     RouteDetailSerializer,
     AirplaneListSerializer,
-    AirplaneDetailSerializer,
     CrewListSerializer,
     FlightListSerializer,
     FlightDetailSerializer,
@@ -96,9 +95,6 @@ class AirplaneViewSet(
         if self.action == "list":
             return AirplaneListSerializer
 
-        if self.action == "retrieve":
-            return AirplaneDetailSerializer
-
         return AirplaneSerializer
 
     def get_queryset(self):
@@ -114,10 +110,13 @@ class OrderViewSet(
     mixins.ListModelMixin,
     viewsets.GenericViewSet
 ):
+    queryset = Order.objects.all()
     serializer_class = OrderSerializer
 
     def get_queryset(self):
-        queryset = Order.objects.filter(user=self.request.user)
+        queryset = self.queryset.filter(
+            user=self.request.user
+        )
 
         if self.action == "list":
             return queryset.select_related()
