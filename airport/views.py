@@ -1,4 +1,5 @@
 from rest_framework import viewsets, mixins
+from django.db.models import Prefetch
 
 from airport.models import (
     Airport,
@@ -8,7 +9,6 @@ from airport.models import (
     Order,
     Flight,
     Crew,
-    Ticket,
 )
 from airport.serializers import (
     AirportSerializer,
@@ -18,13 +18,11 @@ from airport.serializers import (
     OrderSerializer,
     FlightSerializer,
     CrewSerializer,
-    TicketSerializer,
     RouteListSerializer,
     RouteDetailSerializer,
     AirplaneListSerializer,
     AirplaneDetailSerializer,
     CrewListSerializer,
-    TicketListSerializer,
     FlightListSerializer,
     FlightDetailSerializer,
 )
@@ -57,18 +55,24 @@ class RouteViewSet(
         return RouteSerializer
 
     def get_queryset(self):
-        source = self.request.query_params.get("source")
-        destination = self.request.query_params.get("destination")
-
         queryset = self.queryset
 
-        if source:
-            queryset = queryset.filter(source__icontains=source)
+        if self.action == "list":
+            return queryset.select_related()
 
-        if destination:
-            queryset = queryset.filter(destination__icontains=destination)
-
-        return queryset.distinct()
+        return queryset
+        # source = self.request.query_params.get("source")
+        # destination = self.request.query_params.get("destination")
+        #
+        # queryset = self.queryset
+        #
+        # if source:
+        #     queryset = queryset.filter(source__icontains=source)
+        #
+        # if destination:
+        #     queryset = queryset.filter(destination__icontains=destination)
+        #
+        # return queryset.distinct()
 
 
 class AirplaneTypeViewSet(
@@ -97,14 +101,31 @@ class AirplaneViewSet(
 
         return AirplaneSerializer
 
+    def get_queryset(self):
+        queryset = self.queryset
+        if self.action == "list":
+            return queryset.select_related()
+
+        return queryset
+
 
 class OrderViewSet(
     mixins.CreateModelMixin,
     mixins.ListModelMixin,
     viewsets.GenericViewSet
 ):
-    queryset = Order.objects.all()
     serializer_class = OrderSerializer
+
+    def get_queryset(self):
+        queryset = Order.objects.filter(user=self.request.user)
+
+        if self.action == "list":
+            return queryset.select_related()
+
+        return queryset
+
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
 
 
 class FlightViewSet(
@@ -124,6 +145,14 @@ class FlightViewSet(
 
         return FlightSerializer
 
+    def get_queryset(self):
+        queryset = self.queryset
+
+        if self.action == "list":
+            return queryset.select_related()
+
+        return queryset
+
 
 class CrewViewSet(
     mixins.CreateModelMixin,
@@ -138,17 +167,22 @@ class CrewViewSet(
 
         return CrewSerializer
 
+    def get_queryset(self):
+        queryset = self.queryset
 
-class TicketViewSet(
-    mixins.CreateModelMixin,
-    mixins.ListModelMixin,
-    mixins.RetrieveModelMixin,
-    viewsets.GenericViewSet
-):
-    queryset = Ticket.objects.all()
-
-    def get_serializer_class(self):
         if self.action == "list":
-            return TicketListSerializer
+            flight_qs = Flight.objects.select_related(
+                "route",
+                "route__source",
+                "route__destination",
+                "airplane",
+                "airplane__airplane_type"
+            )
+            queryset = queryset.prefetch_related(
+                Prefetch(
+                    "flight",
+                    queryset=flight_qs,
+                    )
+                )
 
-        return TicketSerializer
+        return queryset

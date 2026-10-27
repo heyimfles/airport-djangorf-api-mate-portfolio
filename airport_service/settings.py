@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     "airport",
     "user",
     "drf_spectacular",
+    "debug_toolbar",
 ]
 
 REST_FRAMEWORK = {
@@ -55,6 +56,7 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "debug_toolbar.middleware.DebugToolbarMiddleware",
 ]
 
 ROOT_URLCONF = "airport_service.urls"
@@ -77,6 +79,9 @@ TEMPLATES = [
 WSGI_APPLICATION = "airport_service.wsgi.application"
 
 
+INTERNAL_IPS = [
+    "127.0.0.1",
+]
 # Database
 # https://docs.djangoproject.com/en/6.1/ref/settings/#databases
 
