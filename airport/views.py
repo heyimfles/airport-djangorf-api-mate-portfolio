@@ -2,8 +2,10 @@ from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import viewsets, mixins, pagination
 from django.db.models import Prefetch
 from django.db.models import F, Count
+from rest_framework import permissions
 
 import django_filters
+from rest_framework.permissions import IsAuthenticatedOrReadOnly
 
 from airport.models import (
     Airport,
@@ -27,7 +29,13 @@ from airport.serializers import (
     AirplaneListSerializer,
     CrewListSerializer,
     FlightListSerializer,
-    FlightDetailSerializer, OrderListSerializer,
+    FlightDetailSerializer,
+    OrderListSerializer,
+)
+
+from airport.permissions import (
+    IsAdminOrIfAuthenticatedReadOnly,
+    IsAdminOrReadOnly
 )
 
 
@@ -45,6 +53,7 @@ class AirportViewSet(
 ):
     queryset = Airport.objects.all()
     serializer_class = AirportSerializer
+    permission_classes = IsAdminOrReadOnly
 
 
 class RouteViewSet(
@@ -55,6 +64,7 @@ class RouteViewSet(
 ):
     queryset = Route.objects
     serializer_class = RouteSerializer
+    permission_classes = IsAdminOrReadOnly
 
     @staticmethod
     def _params_to_ints(qs):
@@ -102,6 +112,7 @@ class AirplaneTypeViewSet(
 ):
     queryset = AirplaneType.objects.all()
     serializer_class = AirplaneTypeSerializer
+    permission_classes = IsAdminOrIfAuthenticatedReadOnly
 
 
 class AirplaneViewSet(
@@ -111,6 +122,7 @@ class AirplaneViewSet(
 ):
     queryset = Airplane.objects
     serializer_class = AirplaneSerializer
+    permission_classes = IsAdminOrIfAuthenticatedReadOnly
 
     def get_serializer_class(self):
         if self.action == "list":
@@ -140,6 +152,7 @@ class OrderViewSet(
     queryset = Order.objects
     serializer_class = OrderSerializer
     pagination_class = Pagination
+    permission_classes = permissions.IsAuthenticated
 
     def get_queryset(self):
         queryset = self.queryset.filter(
@@ -192,6 +205,7 @@ class FlightViewSet(
     filter_backends = [DjangoFilterBackend]
     filterset_class = FlightFilter
     pagination_class = Pagination
+    permission_classes = permissions.IsAuthenticatedOrReadOnly
 
     def get_serializer_class(self):
         if self.action == "list":
@@ -232,6 +246,7 @@ class CrewViewSet(
     queryset = Crew.objects
     serializer_class = CrewSerializer
     pagination_class = Pagination
+    permission_classes = IsAuthenticatedOrReadOnly
 
     def get_serializer_class(self):
         if self.action == "list":
