@@ -87,7 +87,6 @@ class AirplaneViewSet(
     mixins.CreateModelMixin,
     mixins.ListModelMixin,
     viewsets.GenericViewSet,
-    mixins.RetrieveModelMixin,
 ):
     queryset = Airplane.objects.all()
 

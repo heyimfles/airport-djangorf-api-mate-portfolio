@@ -94,14 +94,14 @@ class AirplaneSerializer(serializers.ModelSerializer):
             "name",
             "rows",
             "seats_in_row",
-            "capacity",
             "airplane_type",
         )
 
 
 class AirplaneListSerializer(AirplaneSerializer):
-    airplane_type_name = serializers.CharField(
-        source="airplane_type.name"
+    airplane_type = AirplaneTypeSerializer(
+        many=False,
+        read_only=False
     )
 
     class Meta:
@@ -111,8 +111,9 @@ class AirplaneListSerializer(AirplaneSerializer):
             "name",
             "rows",
             "seats_in_row",
+            "seat_letters",
             "capacity",
-            "airplane_type_name",
+            "airplane_type",
         )
 
 

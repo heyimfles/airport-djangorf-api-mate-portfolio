@@ -1,5 +1,6 @@
 from django.core.exceptions import ValidationError
 from django.db import models
+from string import ascii_uppercase
 
 from user.models import User
 
@@ -99,8 +100,15 @@ class Airplane(models.Model):
     def capacity(self):
         return self.rows * self.seats_in_row
 
+    @property
+    def seat_letters(self):
+        return ascii_uppercase[: self.seats_in_row]
+
     def __str__(self):
-        return self.name
+        return (
+            f"{self.name} with capacity "
+            f"of {self.capacity} seats"
+        )
 
 
 class Order(models.Model):
@@ -168,7 +176,7 @@ class Crew(models.Model):
 
 class Ticket(models.Model):
     row = models.IntegerField()
-    seat = models.IntegerField()
+    seat = models.CharField(max_length=1)
     flight = models.ForeignKey(
         Flight,
         on_delete=models.CASCADE,
@@ -187,19 +195,14 @@ class Ticket(models.Model):
             airplane,
             error_to_raise
     ):
-        for ticket_attr_value, ticket_attr_name, airplane_attr_name in [
-            (row, "row", "rows"),
-            (seat, "seat", "seats_in_row"),
-        ]:
-            count_attrs = getattr(airplane, airplane_attr_name)
-            if not (1 <= ticket_attr_value <= count_attrs):
-                raise error_to_raise(
-                    {
-                        ticket_attr_name: f"{ticket_attr_value} "   
-                        f"value must be in range: "
-                        f"(1, {count_attrs})"
-                    }
-                )
+        if not 1 <= row <= airplane.rows:
+            raise error_to_raise(
+                {"row": f"Row must be in range: 1, {airplane.rows}"}
+            )
+        if seat not in airplane.seat_letters:
+            raise error_to_raise(
+                {"seat": f"Seat must be one of: {airplane.seat_letters}"}
+            )
 
     def clean(self):
         Ticket.validate_ticket(
@@ -227,8 +230,7 @@ class Ticket(models.Model):
 
     def __str__(self):
         return (
-            f"{str(self.flight)} (row: "
-            f"{self.row}, seat: {self.seat})"
+            f"{str(self.flight)} ({self.row}{self.seat})"
         )
 
     class Meta:
