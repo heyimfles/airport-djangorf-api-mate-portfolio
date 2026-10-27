@@ -119,17 +119,12 @@ class AirplaneListSerializer(AirplaneSerializer):
 
 
 class TicketSerializer(serializers.ModelSerializer):
-    order = serializers.PrimaryKeyRelatedField(
-        read_only=True,
-    )
-
     class Meta:
         model = Ticket
         fields = (
             "id",
             "row_seat_together",
             "flight",
-            "order",
         )
         validators = [
             UniqueTogetherValidator(
@@ -162,15 +157,23 @@ class FlightSerializer(serializers.ModelSerializer):
 
 
 class FlightListSerializer(FlightSerializer):
-    route_source = serializers.CharField(
+    source = serializers.CharField(
         source="route.source.closest_big_city",
         read_only=True
     )
-    route_destination = serializers.CharField(
+    destination = serializers.CharField(
         source="route.destination.closest_big_city",
+        read_only=True
     )
-    airplane = serializers.CharField(
+    airplane_name = serializers.CharField(
         source="airplane.name",
+        read_only=True
+    )
+    capacity = serializers.IntegerField(
+        source="airplane.capacity",
+        read_only=True
+    )
+    available_seats = serializers.IntegerField(
         read_only=True
     )
 
@@ -178,11 +181,13 @@ class FlightListSerializer(FlightSerializer):
         model = Flight
         fields = (
             "id",
-            "route_source",
-            "route_destination",
-            "airplane",
+            "source",
+            "destination",
+            "airplane_name",
             "departure_time",
             "arrival_time",
+            "capacity",
+            "available_seats",
         )
 
 
@@ -237,6 +242,19 @@ class OrderSerializer(serializers.ModelSerializer):
                 Ticket.objects.create(order=order, **ticket_data)
 
             return order
+
+
+class TicketListSerializer(TicketSerializer):
+    flight = FlightListSerializer(
+        read_only=True
+    )
+
+
+class OrderListSerializer(OrderSerializer):
+    tickets = TicketListSerializer(
+        read_only=True,
+        many=True,
+    )
 
 
 class CrewSerializer(serializers.ModelSerializer):

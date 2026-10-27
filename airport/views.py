@@ -1,6 +1,8 @@
 from django_filters.rest_framework import DjangoFilterBackend
-from rest_framework import viewsets, mixins
+from rest_framework import viewsets, mixins, pagination
 from django.db.models import Prefetch
+from django.db.models import F, Count
+
 import django_filters
 
 from airport.models import (
@@ -25,8 +27,15 @@ from airport.serializers import (
     AirplaneListSerializer,
     CrewListSerializer,
     FlightListSerializer,
-    FlightDetailSerializer,
+    FlightDetailSerializer, OrderListSerializer,
 )
+
+
+class Pagination(pagination.PageNumberPagination):
+    page_size = 10
+    page_size_query_param = "page_size"
+    max_page_size = 100
+
 
 
 class AirportViewSet(
@@ -44,7 +53,8 @@ class RouteViewSet(
     viewsets.GenericViewSet,
     mixins.RetrieveModelMixin,
 ):
-    queryset = Route.objects.all()
+    queryset = Route.objects
+    serializer_class = RouteSerializer
 
     @staticmethod
     def _params_to_ints(qs):
@@ -99,7 +109,8 @@ class AirplaneViewSet(
     mixins.ListModelMixin,
     viewsets.GenericViewSet,
 ):
-    queryset = Airplane.objects.all()
+    queryset = Airplane.objects
+    serializer_class = AirplaneSerializer
 
     def get_serializer_class(self):
         if self.action == "list":
@@ -126,8 +137,9 @@ class OrderViewSet(
     mixins.ListModelMixin,
     viewsets.GenericViewSet
 ):
-    queryset = Order.objects.all()
+    queryset = Order.objects
     serializer_class = OrderSerializer
+    pagination_class = Pagination
 
     def get_queryset(self):
         queryset = self.queryset.filter(
@@ -135,12 +147,20 @@ class OrderViewSet(
         )
 
         if self.action == "list":
-            return queryset.select_related()
+            return queryset.prefetch_related(
+                "tickets__flight",
+            )
 
         return queryset
 
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
+
+    def get_serializer_class(self):
+        if self.action == "list":
+            return OrderListSerializer
+
+        return OrderSerializer
 
 
 class FlightFilter(django_filters.FilterSet):
@@ -167,9 +187,11 @@ class FlightViewSet(
     viewsets.GenericViewSet,
     mixins.RetrieveModelMixin,
 ):
-    queryset = Flight.objects.all()
+    queryset = Flight.objects
+    serializer_class = FlightSerializer
     filter_backends = [DjangoFilterBackend]
     filterset_class = FlightFilter
+    pagination_class = Pagination
 
     def get_serializer_class(self):
         if self.action == "list":
@@ -184,6 +206,19 @@ class FlightViewSet(
         queryset = self.queryset
 
         if self.action == "list":
+            return (
+                queryset
+                .select_related()
+                .annotate(
+                    available_seats=(
+                            F("airplane__rows")
+                            * F("airplane__seats_in_row")
+                            - Count("tickets")
+                    )
+                )
+            )
+
+        if self.action == "retrieve":
             return queryset.select_related()
 
         return queryset
@@ -194,7 +229,9 @@ class CrewViewSet(
     mixins.ListModelMixin,
     viewsets.GenericViewSet
 ):
-    queryset = Crew.objects.all()
+    queryset = Crew.objects
+    serializer_class = CrewSerializer
+    pagination_class = Pagination
 
     def get_serializer_class(self):
         if self.action == "list":
